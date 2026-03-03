@@ -9,6 +9,7 @@ const BreakReminders_1 = require("./features/BreakReminders");
 const CodingTimeTracker_1 = require("./features/CodingTimeTracker");
 const SalahTime_1 = require("./features/SalahTime");
 const CalendarHolidays_1 = require("./features/CalendarHolidays");
+const DailyReminders_1 = require("./features/DailyReminders");
 function activate(context) {
     // Instantiate features
     const taskReminders = new TaskReminders_1.TaskReminders(context);
@@ -16,8 +17,9 @@ function activate(context) {
     const codingTracker = new CodingTimeTracker_1.CodingTimeTracker(context);
     const salahTime = new SalahTime_1.SalahTime(context);
     const holidays = new CalendarHolidays_1.CalendarHolidays();
+    const dailyReminders = new DailyReminders_1.DailyReminders(context);
     // Register the Sidebar Panel
-    const sidebarProvider = new SidebarProvider_1.SidebarProvider(context.extensionUri, context, taskReminders, breakReminders, codingTracker, salahTime, holidays);
+    const sidebarProvider = new SidebarProvider_1.SidebarProvider(context.extensionUri, context, taskReminders, breakReminders, codingTracker, salahTime, holidays, dailyReminders);
     // Initial sync with central settings file
     sidebarProvider.syncWithCentralFile();
     context.subscriptions.push(vscode.window.registerWebviewViewProvider("heartbeat.sidebarView", sidebarProvider));

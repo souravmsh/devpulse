@@ -5,6 +5,7 @@ import { BreakReminders } from './features/BreakReminders';
 import { CodingTimeTracker } from './features/CodingTimeTracker';
 import { SalahTime } from './features/SalahTime';
 import { CalendarHolidays } from './features/CalendarHolidays';
+import { DailyReminders } from './features/DailyReminders';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
     _view?: vscode.WebviewView;
@@ -16,7 +17,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         private breakReminders: BreakReminders,
         private codingTimeTracker: CodingTimeTracker,
         private salahTime: SalahTime,
-        private calendarHolidays: CalendarHolidays
+        private calendarHolidays: CalendarHolidays,
+        private dailyReminders: DailyReminders
     ) { }
 
     public resolveWebviewView(webviewView: vscode.WebviewView) {
@@ -35,7 +37,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                     this.sendState();
                     break;
                 case 'addTask':
-                    this.taskReminders.addTask(data.value.title, data.value.content, data.value.date, data.value.highPriority);
+                    this.taskReminders.addTask(data.value.title, data.value.content, data.value.date, data.value.highPriority, data.value.time);
                     this.sendState();
                     break;
                 case 'removeTask':
@@ -43,7 +45,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                     this.sendState();
                     break;
                 case 'editTask':
-                    this.taskReminders.editTask(data.value.id, data.value.title, data.value.content, data.value.date, data.value.highPriority);
+                    this.taskReminders.editTask(data.value.id, data.value.title, data.value.content, data.value.date, data.value.highPriority, data.value.time);
                     this.sendState();
                     break;
                 case 'addBreak':
@@ -52,6 +54,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'removeBreak':
                     this.breakReminders.removeBreak(data.value);
+                    this.sendState();
+                    break;
+                case 'addDailyReminder':
+                    this.dailyReminders.addReminder(data.value.name, data.value.time, data.value.date);
+                    this.sendState();
+                    break;
+                case 'removeDailyReminder':
+                    this.dailyReminders.removeReminder(data.value);
                     this.sendState();
                     break;
                 case 'toggleTimer':
@@ -146,6 +156,36 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                 }
             });
         };
+
+        // Task Reminder (Meeting) -> Webview Toast + Native
+        this.taskReminders.onReminder = (task) => {
+            const msg = `Meeting Reminder: ${task.title}`;
+            vscode.window.showInformationMessage(msg);
+            this._view?.webview.postMessage({
+                type: 'showNotification',
+                value: { message: msg, type: 'warning' }
+            });
+        };
+
+        // Daily Reminder -> Webview Toast + Native
+        this.dailyReminders.onReminder = (dr) => {
+            const msg = `Daily Reminder: ${dr.name}`;
+            vscode.window.showInformationMessage(msg);
+            this._view?.webview.postMessage({
+                type: 'showNotification',
+                value: { message: msg, type: 'info' }
+            });
+        };
+
+        this.taskReminders.onSchedulePreview = (tasks) => {
+            const list = tasks.map(t => `- ${t.time || 'All day'}: ${t.title}`).join('\n');
+            const msg = `Schedule for Tomorrow:\n${list}`;
+            vscode.window.showInformationMessage(msg);
+            this._view?.webview.postMessage({
+                type: 'showNotification',
+                value: { message: msg, type: 'info' }
+            });
+        };
     }
 
     public async syncWithCentralFile() {
@@ -220,6 +260,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private async applySettings(data: any, notify: boolean = true) {
         if (data.tasks) await this._context.globalState.update('heartbeat.tasks.v3', data.tasks);
         if (data.breaks) await this._context.globalState.update('heartbeat.breaks', data.breaks);
+        if (data.dailyReminders) await this._context.globalState.update('heartbeat.dailyReminders', data.dailyReminders);
+        if (data.schedulePreviewTime) {
+            this.taskReminders.schedulePreviewTime = data.schedulePreviewTime;
+            await this._context.globalState.update('heartbeat.schedulePreviewTime', data.schedulePreviewTime);
+        }
         if (data.codingTime !== undefined) await this._context.globalState.update('heartbeat.codingTime', data.codingTime);
         if (data.codingDate) await this._context.globalState.update('heartbeat.codingDate', data.codingDate);
         if (data.cardOrder) await this._context.globalState.update('heartbeat.cardOrder', data.cardOrder);
@@ -240,6 +285,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         this.codingTimeTracker.loadTime();
         this.salahTime.updateCalculation();
         await this.calendarHolidays.loadHolidays();
+        this.dailyReminders.loadReminders();
     }
 
     private async browseCentralFile() {
@@ -373,6 +419,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             value: {
                 tasks: this.taskReminders.getTasks(),
                 breaks: this.breakReminders.getBreaks(),
+                dailyReminders: this.dailyReminders.getReminders(),
                 codingTimeMs: this.codingTimeTracker.getTrackerData().codingTimeMs,
                 timerPaused: this.codingTimeTracker.isPaused(),
                 holidays: this.calendarHolidays.getHolidays(),
@@ -380,7 +427,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                 holidaysPath: config.get<string>('holidays.source'),
                 weekends: config.get<number[]>('calendar.weekends'),
                 centralFile: config.get<string>('settings.centralFile'),
-                cardOrder: this._context.globalState.get<string[]>('heartbeat.cardOrder') || this._context.globalState.get<string[]>('timeout.cardOrder')
+                cardOrder: this._context.globalState.get<string[]>('heartbeat.cardOrder') || this._context.globalState.get<string[]>('timeout.cardOrder'),
+                schedulePreviewTime: this.taskReminders.schedulePreviewTime
             }
         });
     }

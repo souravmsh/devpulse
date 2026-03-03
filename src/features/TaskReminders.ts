@@ -3,6 +3,7 @@ export interface ReminderTask {
     title: string;
     content: string;
     date?: string;
+    time?: string; // HH:mm
     highPriority: boolean;
 }
 
@@ -10,13 +11,17 @@ import * as vscode from 'vscode';
 
 export class TaskReminders {
     private _tasks: ReminderTask[] = [];
+    private _lastNotified: Map<string, string> = new Map();
+    public schedulePreviewTime: string = "18:00";
+    public onReminder?: (task: ReminderTask) => void;
+    public onSchedulePreview?: (tasks: ReminderTask[]) => void;
 
     constructor(private context: vscode.ExtensionContext) {
         this.loadTasks();
-        setInterval(() => this.checkReminders(), 60000);
+        setInterval(() => this.checkReminders(), 30000); // Check every 30s
     }
 
-    addTask(title: string, content: string, date?: string, highPriority?: boolean) {
+    addTask(title: string, content: string, date?: string, highPriority?: boolean, time?: string) {
         if (!title.trim()) {
             const taskCount = this._tasks.length + 1;
             title = `Task ${taskCount}`;
@@ -26,17 +31,19 @@ export class TaskReminders {
             title,
             content,
             date,
+            time,
             highPriority: !!highPriority
         });
         this.saveTasks();
     }
 
-    editTask(id: string, title: string, content: string, date?: string, highPriority?: boolean) {
+    editTask(id: string, title: string, content: string, date?: string, highPriority?: boolean, time?: string) {
         const task = this._tasks.find(t => t.id === id);
         if (task) {
             task.title = title;
             task.content = content;
             task.date = date;
+            task.time = time;
             task.highPriority = !!highPriority;
             this.saveTasks();
         }
@@ -44,6 +51,7 @@ export class TaskReminders {
 
     removeTask(id: string) {
         this._tasks = this._tasks.filter(t => t.id !== id);
+        this._lastNotified.delete(id);
         this.saveTasks();
     }
 
@@ -63,6 +71,7 @@ export class TaskReminders {
                 title: task.title || task.name || 'Untitled Task',
                 content: task.content || '',
                 date: task.date,
+                time: task.time,
                 highPriority: !!task.highPriority
             }));
         }
@@ -74,15 +83,34 @@ export class TaskReminders {
 
     private checkReminders() {
         const now = new Date();
-        // YYYY-MM-DD
         const todayDate = now.toISOString().split('T')[0];
+        const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const notificationKey = `${todayDate} ${currentTime}`;
 
-        // Priority-based alerting could be integrated here if needed
         this._tasks.forEach(task => {
-            if (task.date === todayDate) {
-                // Only trigger once per day or upon opening, simplified for now
-                // vscode.window.showInformationMessage(`Scheduled Task Reminder: ${task.name}`);
+            if (task.date === todayDate && task.time === currentTime) {
+                const lastNotified = this._lastNotified.get(task.id);
+                if (lastNotified !== notificationKey) {
+                    if (this.onReminder) {
+                        this.onReminder(task);
+                    }
+                    this._lastNotified.set(task.id, notificationKey);
+                }
             }
         });
+
+        // Check for tomorrow's schedule (Daily Preview)
+        if (currentTime === this.schedulePreviewTime) {
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowDate = tomorrow.toISOString().split('T')[0];
+            const tomorrowTasks = this._tasks.filter(t => t.date === tomorrowDate);
+            if (tomorrowTasks.length > 0 && this._lastNotified.get("tomorrow_preview") !== todayDate) {
+                if (this.onSchedulePreview) {
+                    this.onSchedulePreview(tomorrowTasks);
+                }
+                this._lastNotified.set("tomorrow_preview", todayDate);
+            }
+        }
     }
 }

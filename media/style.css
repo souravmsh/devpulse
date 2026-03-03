@@ -556,6 +556,57 @@ body {
   display: block;
 }
 
+/* Radio Buttons */
+.ios-radio {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-muted);
+}
+
+.ios-radio input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.radio-mark {
+  height: 18px;
+  width: 18px;
+  background-color: rgba(128, 128, 128, 0.2);
+  border-radius: 50%;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.ios-radio:hover input~.radio-mark {
+  background-color: rgba(128, 128, 128, 0.3);
+}
+
+.ios-radio input:checked~.radio-mark {
+  background-color: var(--primary);
+}
+
+.radio-mark:after {
+  content: "";
+  display: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: white;
+}
+
+.ios-radio input:checked~.radio-mark:after {
+  display: block;
+}
+
 /* Reminder Groups */
 .group-header {
   font-size: 11px;

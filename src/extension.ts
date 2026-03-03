@@ -5,6 +5,7 @@ import { BreakReminders } from './features/BreakReminders';
 import { CodingTimeTracker } from './features/CodingTimeTracker';
 import { SalahTime } from './features/SalahTime';
 import { CalendarHolidays } from './features/CalendarHolidays';
+import { DailyReminders } from './features/DailyReminders';
 
 export function activate(context: vscode.ExtensionContext) {
     // Instantiate features
@@ -13,6 +14,7 @@ export function activate(context: vscode.ExtensionContext) {
     const codingTracker = new CodingTimeTracker(context);
     const salahTime = new SalahTime(context);
     const holidays = new CalendarHolidays();
+    const dailyReminders = new DailyReminders(context);
 
     // Register the Sidebar Panel
     const sidebarProvider = new SidebarProvider(
@@ -22,7 +24,8 @@ export function activate(context: vscode.ExtensionContext) {
         breakReminders,
         codingTracker,
         salahTime,
-        holidays
+        holidays,
+        dailyReminders
     );
 
     // Initial sync with central settings file

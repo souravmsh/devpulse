@@ -51,7 +51,10 @@
           <textarea id="newTaskContent" class="ios-input" placeholder="Task Content"
             style="min-height: 50px; resize: vertical;"></textarea>
           <div class="input-row">
-            <input type="date" id="newTaskDate" class="ios-input">
+            <input type="date" id="newTaskDate" class="ios-input" placeholder="Date">
+            <input type="time" id="newTaskTime" class="ios-input" placeholder="Time">
+          </div>
+          <div class="input-row">
             <label class="ios-checkbox">
               <input type="checkbox" id="newTaskHighPriority">
               <span class="checkmark"></span>
@@ -75,14 +78,41 @@
         </div>
 
         <div class="add-form hidden" id="addReminderForm">
-          <input type="text" id="newBreakName" class="ios-input" placeholder="e.g. Drink Water">
-          <div class="input-row">
+          <input type="text" id="newBreakName" class="ios-input" placeholder="e.g. Drink Water or Office End">
+          <div class="input-row" id="reminderTypeToggle">
+            <label class="ios-radio">
+              <input type="radio" name="reminderType" value="interval" checked>
+              <span class="radio-mark"></span> Interval
+            </label>
+            <label class="ios-radio">
+              <input type="radio" name="reminderType" value="daily">
+              <span class="radio-mark"></span> Daily Fixed
+            </label>
+            <label class="ios-radio">
+              <input type="radio" name="reminderType" value="onetime">
+              <span class="radio-mark"></span> One-time
+            </label>
+          </div>
+          <div class="input-row" id="intervalInputRow">
             <input type="number" id="newBreakInterval" class="ios-input" placeholder="Mins">
             <select id="newBreakGroup" class="ios-select">
               <option value="Health">Health</option>
               <option value="Productivity">Productivity</option>
+              <option value="Meeting">Meeting</option>
+              <option value="Break">Break</option>
+              <option value="Leave">Leave</option>
+              <option value="Eat">Eat</option>
+              <option value="Salah">Salah</option>
               <option value="Custom">Custom</option>
             </select>
+          </div>
+          <div class="input-row hidden" id="dailyInputRow">
+            <input type="time" id="newDailyTime" class="ios-input">
+            <span style="font-size: 11px; color: var(--text-muted); align-self: center;">Daily at this time</span>
+          </div>
+          <div class="input-row hidden" id="onetimeInputRow">
+            <input type="date" id="newReminderDate" class="ios-input">
+            <input type="time" id="newReminderTime" class="ios-input">
           </div>
           <button id="addBreakBtn" class="primary-btn ios-btn">Add Reminder</button>
         </div>
@@ -222,6 +252,15 @@
             </div>
             <p class="setting-description" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
               Automatically loads data from this file on startup.
+            </p>
+          </div>
+          <div class="setting-group" style="margin-top: 12px;">
+            <label class="setting-label">Next Day Schedule Preview Time</label>
+            <div class="input-row">
+              <input type="time" id="settingSchedulePreviewTime" class="ios-input" style="margin-bottom: 0;">
+            </div>
+            <p class="setting-description" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+              Triggers a summary of tomorrow's meetings at this time today.
             </p>
           </div>
           <button id="saveGeneralSettingsBtn" class="primary-btn ios-btn compact-btn"

@@ -4,6 +4,7 @@
     let state = {
         tasks: [],
         breaks: [],
+        dailyReminders: [],
         codingTimeMs: 0,
         timerPaused: false,
         holidays: [],
@@ -43,8 +44,27 @@
             document.getElementById('newTaskTitle').value = '';
             document.getElementById('newTaskContent').value = '';
             document.getElementById('newTaskDate').value = '';
+            document.getElementById('newTaskTime').value = '';
             document.getElementById('newTaskHighPriority').checked = false;
         }
+    });
+
+    document.querySelectorAll('input[name="reminderType"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            if (e.target.value === 'interval') {
+                document.getElementById('intervalInputRow').classList.remove('hidden');
+                document.getElementById('dailyInputRow').classList.add('hidden');
+                document.getElementById('onetimeInputRow').classList.add('hidden');
+            } else if (e.target.value === 'daily') {
+                document.getElementById('intervalInputRow').classList.add('hidden');
+                document.getElementById('dailyInputRow').classList.remove('hidden');
+                document.getElementById('onetimeInputRow').classList.add('hidden');
+            } else {
+                document.getElementById('intervalInputRow').classList.add('hidden');
+                document.getElementById('dailyInputRow').classList.add('hidden');
+                document.getElementById('onetimeInputRow').classList.remove('hidden');
+            }
+        });
     });
 
     document.getElementById('showAddReminderFormBtn')?.addEventListener('click', () => {
@@ -69,7 +89,8 @@
 
     document.getElementById('saveGeneralSettingsBtn')?.addEventListener('click', () => {
         const centralFile = document.getElementById('settingCentralFilePath').value;
-        vscode.postMessage({ type: 'saveSettings', value: { type: 'general', centralFile } });
+        const schedulePreviewTime = document.getElementById('settingSchedulePreviewTime').value;
+        vscode.postMessage({ type: 'saveSettings', value: { type: 'general', centralFile, schedulePreviewTime } });
     });
 
     document.getElementById('exportSettingsBtn')?.addEventListener('click', () => {
@@ -93,36 +114,56 @@
         const title = document.getElementById('newTaskTitle').value;
         const content = document.getElementById('newTaskContent').value;
         const date = document.getElementById('newTaskDate').value;
+        const time = document.getElementById('newTaskTime').value;
         const highPriority = document.getElementById('newTaskHighPriority').checked;
 
         if (content || title) {
             if (editingTaskId) {
-                vscode.postMessage({ type: 'editTask', value: { id: editingTaskId, title, content, date, highPriority } });
+                vscode.postMessage({ type: 'editTask', value: { id: editingTaskId, title, content, date, time, highPriority } });
                 editingTaskId = null;
                 document.getElementById('addTaskBtn').textContent = 'Add Task';
             } else {
-                vscode.postMessage({ type: 'addTask', value: { title, content, date, highPriority } });
+                vscode.postMessage({ type: 'addTask', value: { title, content, date, time, highPriority } });
             }
             document.getElementById('newTaskTitle').value = '';
             document.getElementById('newTaskContent').value = '';
             document.getElementById('newTaskDate').value = '';
+            document.getElementById('newTaskTime').value = '';
             document.getElementById('newTaskHighPriority').checked = false;
             document.getElementById('addTaskForm').classList.add('hidden');
         }
     });
 
     document.getElementById('addBreakBtn')?.addEventListener('click', () => {
+        const type = document.querySelector('input[name="reminderType"]:checked').value;
         const name = document.getElementById('newBreakName').value;
-        const interval = document.getElementById('newBreakInterval').value;
-        const group = document.getElementById('newBreakGroup').value;
 
-        if (name && interval) {
-            const compoundName = `${group}::${name}`;
-            vscode.postMessage({ type: 'addBreak', value: { name: compoundName, interval: parseInt(interval) } });
-            document.getElementById('newBreakName').value = '';
-            document.getElementById('newBreakInterval').value = '';
-            document.getElementById('addReminderForm').classList.add('hidden');
+        if (type === 'interval') {
+            const interval = document.getElementById('newBreakInterval').value;
+            const group = document.getElementById('newBreakGroup').value;
+            if (name && interval) {
+                const compoundName = `${group}::${name}`;
+                vscode.postMessage({ type: 'addBreak', value: { name: compoundName, interval: parseInt(interval) } });
+            }
+        } else if (type === 'daily') {
+            const time = document.getElementById('newDailyTime').value;
+            if (name && time) {
+                vscode.postMessage({ type: 'addDailyReminder', value: { name, time } });
+            }
+        } else if (type === 'onetime') {
+            const date = document.getElementById('newReminderDate').value;
+            const time = document.getElementById('newReminderTime').value;
+            if (name && date && time) {
+                vscode.postMessage({ type: 'addDailyReminder', value: { name, time, date } });
+            }
         }
+
+        document.getElementById('newBreakName').value = '';
+        document.getElementById('newBreakInterval').value = '';
+        document.getElementById('newDailyTime').value = '';
+        document.getElementById('newReminderDate').value = '';
+        document.getElementById('newReminderTime').value = '';
+        document.getElementById('addReminderForm').classList.add('hidden');
     });
 
     document.getElementById('timerToggleBtn')?.addEventListener('click', () => {
@@ -250,6 +291,7 @@
     // Global Remove Handlers
     window.removeTask = (id) => vscode.postMessage({ type: 'removeTask', value: id });
     window.removeBreak = (id) => vscode.postMessage({ type: 'removeBreak', value: id });
+    window.removeDailyReminder = (id) => vscode.postMessage({ type: 'removeDailyReminder', value: id });
 
     window.editTask = (id) => {
         const task = state.tasks.find(t => t.id === id);
@@ -258,6 +300,7 @@
             document.getElementById('newTaskTitle').value = task.title;
             document.getElementById('newTaskContent').value = task.content;
             document.getElementById('newTaskDate').value = task.date || '';
+            document.getElementById('newTaskTime').value = task.time || '';
             document.getElementById('newTaskHighPriority').checked = task.highPriority;
             document.getElementById('addTaskBtn').textContent = 'Update Task';
             document.getElementById('addTaskForm').classList.remove('hidden');
@@ -340,7 +383,7 @@
                     ${priorityTag}
                   </div>
                   <div class="task-body-text">${task.content || ''}</div>
-                  <div class="task-meta">${dateMeta}</div>
+                  <div class="task-meta">${dateMeta}${task.time ? ' @ ' + task.time : ''}</div>
                 </div>
                 <div class="task-actions" style="display:flex; gap:8px; align-items: flex-start;">
                     <button class="icon-btn action-icon" onclick="copyTask('${copyStr}')" title="Copy">
@@ -392,6 +435,27 @@
                 groupEl.appendChild(item);
             });
             container.appendChild(groupEl);
+        }
+
+        if (state.dailyReminders && state.dailyReminders.length > 0) {
+            const dailyGroup = document.createElement('div');
+            dailyGroup.innerHTML = `<div class="group-header">Daily Scheduled</div>`;
+
+            state.dailyReminders.forEach(dr => {
+                const item = document.createElement('div');
+                item.className = 'reminder-item';
+                const dateTag = dr.date ? `<span class="tag tag-custom">${dr.date}</span>` : '';
+                item.innerHTML = `
+                  <div class="label">
+                     <span>${dr.name}</span>
+                     ${dateTag}
+                     <span class="tag tag-custom">${dr.time}</span>
+                  </div>
+                  <button class="icon-btn action-icon" onclick="removeDailyReminder('${dr.id}')" style="width:24px;height:24px;font-size:12px;">✕</button>
+                `;
+                dailyGroup.appendChild(item);
+            });
+            container.appendChild(dailyGroup);
         }
     }
 
@@ -503,6 +567,11 @@
         if (state.centralFile !== undefined) {
             const input = document.getElementById('settingCentralFilePath');
             if (input) input.value = state.centralFile;
+        }
+
+        if (state.schedulePreviewTime !== undefined) {
+            const input = document.getElementById('settingSchedulePreviewTime');
+            if (input) input.value = state.schedulePreviewTime;
         }
     }
 

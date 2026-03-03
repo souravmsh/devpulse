@@ -4,7 +4,7 @@ exports.SidebarProvider = void 0;
 const vscode = require("vscode");
 const fs = require("fs");
 class SidebarProvider {
-    constructor(_extensionUri, _context, taskReminders, breakReminders, codingTimeTracker, salahTime, calendarHolidays) {
+    constructor(_extensionUri, _context, taskReminders, breakReminders, codingTimeTracker, salahTime, calendarHolidays, dailyReminders) {
         this._extensionUri = _extensionUri;
         this._context = _context;
         this.taskReminders = taskReminders;
@@ -12,6 +12,7 @@ class SidebarProvider {
         this.codingTimeTracker = codingTimeTracker;
         this.salahTime = salahTime;
         this.calendarHolidays = calendarHolidays;
+        this.dailyReminders = dailyReminders;
     }
     resolveWebviewView(webviewView) {
         this._view = webviewView;
@@ -26,7 +27,7 @@ class SidebarProvider {
                     this.sendState();
                     break;
                 case 'addTask':
-                    this.taskReminders.addTask(data.value.title, data.value.content, data.value.date, data.value.highPriority);
+                    this.taskReminders.addTask(data.value.title, data.value.content, data.value.date, data.value.highPriority, data.value.time);
                     this.sendState();
                     break;
                 case 'removeTask':
@@ -34,7 +35,7 @@ class SidebarProvider {
                     this.sendState();
                     break;
                 case 'editTask':
-                    this.taskReminders.editTask(data.value.id, data.value.title, data.value.content, data.value.date, data.value.highPriority);
+                    this.taskReminders.editTask(data.value.id, data.value.title, data.value.content, data.value.date, data.value.highPriority, data.value.time);
                     this.sendState();
                     break;
                 case 'addBreak':
@@ -43,6 +44,14 @@ class SidebarProvider {
                     break;
                 case 'removeBreak':
                     this.breakReminders.removeBreak(data.value);
+                    this.sendState();
+                    break;
+                case 'addDailyReminder':
+                    this.dailyReminders.addReminder(data.value.name, data.value.time, data.value.date);
+                    this.sendState();
+                    break;
+                case 'removeDailyReminder':
+                    this.dailyReminders.removeReminder(data.value);
                     this.sendState();
                     break;
                 case 'toggleTimer':
@@ -130,6 +139,33 @@ class SidebarProvider {
                 }
             });
         };
+        // Task Reminder (Meeting) -> Webview Toast + Native
+        this.taskReminders.onReminder = (task) => {
+            const msg = `Meeting Reminder: ${task.title}`;
+            vscode.window.showInformationMessage(msg);
+            this._view?.webview.postMessage({
+                type: 'showNotification',
+                value: { message: msg, type: 'warning' }
+            });
+        };
+        // Daily Reminder -> Webview Toast + Native
+        this.dailyReminders.onReminder = (dr) => {
+            const msg = `Daily Reminder: ${dr.name}`;
+            vscode.window.showInformationMessage(msg);
+            this._view?.webview.postMessage({
+                type: 'showNotification',
+                value: { message: msg, type: 'info' }
+            });
+        };
+        this.taskReminders.onSchedulePreview = (tasks) => {
+            const list = tasks.map(t => `- ${t.time || 'All day'}: ${t.title}`).join('\n');
+            const msg = `Schedule for Tomorrow:\n${list}`;
+            vscode.window.showInformationMessage(msg);
+            this._view?.webview.postMessage({
+                type: 'showNotification',
+                value: { message: msg, type: 'info' }
+            });
+        };
     }
     async syncWithCentralFile() {
         const config = vscode.workspace.getConfiguration('heartbeat');
@@ -201,6 +237,12 @@ class SidebarProvider {
             await this._context.globalState.update('heartbeat.tasks.v3', data.tasks);
         if (data.breaks)
             await this._context.globalState.update('heartbeat.breaks', data.breaks);
+        if (data.dailyReminders)
+            await this._context.globalState.update('heartbeat.dailyReminders', data.dailyReminders);
+        if (data.schedulePreviewTime) {
+            this.taskReminders.schedulePreviewTime = data.schedulePreviewTime;
+            await this._context.globalState.update('heartbeat.schedulePreviewTime', data.schedulePreviewTime);
+        }
         if (data.codingTime !== undefined)
             await this._context.globalState.update('heartbeat.codingTime', data.codingTime);
         if (data.codingDate)
@@ -228,6 +270,7 @@ class SidebarProvider {
         this.codingTimeTracker.loadTime();
         this.salahTime.updateCalculation();
         await this.calendarHolidays.loadHolidays();
+        this.dailyReminders.loadReminders();
     }
     async browseCentralFile() {
         const options = {
@@ -347,6 +390,7 @@ class SidebarProvider {
             value: {
                 tasks: this.taskReminders.getTasks(),
                 breaks: this.breakReminders.getBreaks(),
+                dailyReminders: this.dailyReminders.getReminders(),
                 codingTimeMs: this.codingTimeTracker.getTrackerData().codingTimeMs,
                 timerPaused: this.codingTimeTracker.isPaused(),
                 holidays: this.calendarHolidays.getHolidays(),
@@ -354,7 +398,8 @@ class SidebarProvider {
                 holidaysPath: config.get('holidays.source'),
                 weekends: config.get('calendar.weekends'),
                 centralFile: config.get('settings.centralFile'),
-                cardOrder: this._context.globalState.get('heartbeat.cardOrder') || this._context.globalState.get('timeout.cardOrder')
+                cardOrder: this._context.globalState.get('heartbeat.cardOrder') || this._context.globalState.get('timeout.cardOrder'),
+                schedulePreviewTime: this.taskReminders.schedulePreviewTime
             }
         });
     }
