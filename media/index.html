@@ -217,27 +217,39 @@
             <div class="input-row">
               <input type="text" id="settingCentralFilePath" class="ios-input" style="margin-bottom: 0;"
                 placeholder="/path/to/settings.json">
-              <button id="browseCentralBtn" class="secondary-btn ios-btn" style="white-space: nowrap;">Browse</button>
+              <button id="browseCentralBtn" class="secondary-btn ios-btn compact-btn"
+                style="white-space: nowrap;">Browse</button>
             </div>
             <p class="setting-description" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
               Automatically loads data from this file on startup.
             </p>
           </div>
-          <button id="saveGeneralSettingsBtn" class="primary-btn ios-btn" style="width: 100%; margin-top: 8px;">Save
+          <button id="saveGeneralSettingsBtn" class="primary-btn ios-btn compact-btn"
+            style="width: 100%; margin-top: 8px;">Save
             General Settings</button>
         </div>
 
-        <div class="settings-actions" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
-          <button id="exportSettingsBtn" class="secondary-btn ios-btn" style="width: 100%;">
+        <div class="settings-actions" style="display: flex; flex-direction: row; gap: 8px; margin-top: 10px;">
+          <button id="exportSettingsBtn" class="primary-btn ios-btn compact-btn" style="width: 100%;">
             <span style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
-              Export Data & Settings
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+                <path
+                  d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z" />
+              </svg>
+              Export
             </span>
           </button>
-          <button id="importSettingsBtn" class="secondary-btn ios-btn" style="width: 100%;">
+          <button id="importSettingsBtn" class="warning-btn ios-btn compact-btn" style="width: 100%;">
             <span style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg>
-              Import Data & Settings
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path
+                  d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+                <path
+                  d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
+              </svg>
+              Import
             </span>
           </button>
         </div>

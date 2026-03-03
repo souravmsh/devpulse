@@ -4,6 +4,10 @@
     "description": "Helps developers manage productivity, health breaks, tasks, and daily activity.",
     "version": "1.0.0",
     "publisher": "souravmsh",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/souravmsh/heartbeat.git"
+    },
     "icon": "assets/icon.png",
     "author": "Shohrab Hossain <sourav.diubd@gmail.com>",
     "engines": {
