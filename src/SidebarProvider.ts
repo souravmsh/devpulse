@@ -65,6 +65,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                 case 'saveSettings':
                     this.saveSettings(data.value);
                     break;
+                case 'exportSettings':
+                    this.exportSettings();
+                    break;
+                case 'importSettings':
+                    this.importSettings();
+                    break;
+                case 'browseCentralFile':
+                    this.browseCentralFile();
+                    break;
                 case 'browseHolidays':
                     this.browseHolidays();
                     break;
@@ -121,6 +130,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             }
         }, 1000);
 
+        // Sync with central file on startup if configured
+        this.syncWithCentralFile();
+
         // Holiday Reminder -> Webview Toast + Native
         this.calendarHolidays.onReminder = (holiday) => {
             const msg = `Holiday Alert: ${holiday.name} starts tomorrow! glue`;
@@ -136,6 +148,123 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         };
     }
 
+    public async syncWithCentralFile() {
+        const config = vscode.workspace.getConfiguration('heartbeat');
+        const centralFile = config.get<string>('settings.centralFile');
+        if (centralFile && fs.existsSync(centralFile)) {
+            try {
+                const content = fs.readFileSync(centralFile, 'utf-8');
+                const data = JSON.parse(content);
+                await this.applySettings(data, false); // Don't notify on auto-load
+            } catch (err) {
+                console.error('Failed to sync with central file:', err);
+            }
+        }
+    }
+
+    private async exportSettings() {
+        const config = vscode.workspace.getConfiguration('heartbeat');
+        const data = {
+            tasks: this.taskReminders.getTasks(),
+            breaks: this.breakReminders.getBreaks(),
+            codingTime: this._context.globalState.get('heartbeat.codingTime'),
+            codingDate: this._context.globalState.get('heartbeat.codingDate'),
+            cardOrder: this._context.globalState.get('heartbeat.cardOrder'),
+            settings: {
+                breaksInterval: config.get('breaks.interval'),
+                salahMethod: config.get('salah.method'),
+                holidaysSource: config.get('holidays.source'),
+                calendarWeekends: config.get('calendar.weekends'),
+                salahOffsets: config.get('salah.offsets'),
+                centralFile: config.get('settings.centralFile')
+            }
+        };
+
+        const uri = await vscode.window.showSaveDialog({
+            filters: { 'JSON Files': ['json'] },
+            title: 'Export Heartbeat Settings'
+        });
+
+        if (uri) {
+            fs.writeFileSync(uri.fsPath, JSON.stringify(data, null, 4));
+            this._view?.webview.postMessage({
+                type: 'showNotification',
+                value: { message: 'Settings exported successfully!', type: 'success' }
+            });
+        }
+    }
+
+    private async importSettings() {
+        const uri = await vscode.window.showOpenDialog({
+            canSelectMany: false,
+            filters: { 'JSON Files': ['json'] },
+            title: 'Import Heartbeat Settings'
+        });
+
+        if (uri && uri[0]) {
+            try {
+                const content = fs.readFileSync(uri[0].fsPath, 'utf-8');
+                const data = JSON.parse(content);
+                await this.applySettings(data);
+                this._view?.webview.postMessage({
+                    type: 'showNotification',
+                    value: { message: 'Settings imported successfully!', type: 'success' }
+                });
+                this.sendState();
+            } catch (err) {
+                vscode.window.showErrorMessage('Failed to import settings: ' + err);
+            }
+        }
+    }
+
+    private async applySettings(data: any, notify: boolean = true) {
+        if (data.tasks) await this._context.globalState.update('heartbeat.tasks.v3', data.tasks);
+        if (data.breaks) await this._context.globalState.update('heartbeat.breaks', data.breaks);
+        if (data.codingTime !== undefined) await this._context.globalState.update('heartbeat.codingTime', data.codingTime);
+        if (data.codingDate) await this._context.globalState.update('heartbeat.codingDate', data.codingDate);
+        if (data.cardOrder) await this._context.globalState.update('heartbeat.cardOrder', data.cardOrder);
+
+        if (data.settings) {
+            const config = vscode.workspace.getConfiguration('heartbeat');
+            if (data.settings.breaksInterval !== undefined) await config.update('breaks.interval', data.settings.breaksInterval, vscode.ConfigurationTarget.Global);
+            if (data.settings.salahMethod) await config.update('salah.method', data.settings.salahMethod, vscode.ConfigurationTarget.Global);
+            if (data.settings.holidaysSource) await config.update('holidays.source', data.settings.holidaysSource, vscode.ConfigurationTarget.Global);
+            if (data.settings.calendarWeekends) await config.update('calendar.weekends', data.settings.calendarWeekends, vscode.ConfigurationTarget.Global);
+            if (data.settings.salahOffsets) await config.update('salah.offsets', data.settings.salahOffsets, vscode.ConfigurationTarget.Global);
+            if (data.settings.centralFile !== undefined) await config.update('settings.centralFile', data.settings.centralFile, vscode.ConfigurationTarget.Global);
+        }
+
+        // Reload data in features
+        this.taskReminders.loadTasks();
+        this.breakReminders.loadBreaks();
+        this.codingTimeTracker.loadTime();
+        this.salahTime.updateCalculation();
+        await this.calendarHolidays.loadHolidays();
+    }
+
+    private async browseCentralFile() {
+        const options: vscode.OpenDialogOptions = {
+            canSelectMany: false,
+            openLabel: 'Select Central Settings File',
+            filters: { 'JSON Files': ['json'] }
+        };
+
+        const fileUri = await vscode.window.showOpenDialog(options);
+        if (fileUri && fileUri[0]) {
+            const config = vscode.workspace.getConfiguration('heartbeat');
+            await config.update('settings.centralFile', fileUri[0].fsPath, vscode.ConfigurationTarget.Global);
+
+            // Optionally load from it immediately
+            await this.syncWithCentralFile();
+
+            this._view?.webview.postMessage({
+                type: 'showNotification',
+                value: { message: 'Central settings file updated!', type: 'success' }
+            });
+            this.sendState();
+        }
+    }
+
     private async saveSettings(settings: any) {
         const config = vscode.workspace.getConfiguration('heartbeat');
         if (settings.type === 'calendar') {
@@ -146,6 +275,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             await config.update('salah.method', settings.salahMethod, vscode.ConfigurationTarget.Global);
             await config.update('salah.offsets', settings.salahOffsets, vscode.ConfigurationTarget.Global);
             this.salahTime.updateCalculation();
+        } else if (settings.type === 'general') {
+            await config.update('settings.centralFile', settings.centralFile, vscode.ConfigurationTarget.Global);
+            await this.syncWithCentralFile();
         }
 
         this._view?.webview.postMessage({
@@ -247,6 +379,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                 salahData: this.salahTime.getSalahData(),
                 holidaysPath: config.get<string>('holidays.source'),
                 weekends: config.get<number[]>('calendar.weekends'),
+                centralFile: config.get<string>('settings.centralFile'),
                 cardOrder: this._context.globalState.get<string[]>('heartbeat.cardOrder') || this._context.globalState.get<string[]>('timeout.cardOrder')
             }
         });

@@ -280,6 +280,17 @@ body {
   background: rgba(128, 128, 128, 0.2);
 }
 
+/* Settings Widget */
+.widget-settings .settings-actions .ios-btn {
+  justify-content: flex-start;
+  padding: 10px 16px;
+}
+
+.setting-description {
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
 /* Forms & Inputs */
 .hidden {
   display: none !important;

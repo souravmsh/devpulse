@@ -7,21 +7,7 @@ export class CodingTimeTracker {
     private _saveInterval?: NodeJS.Timeout;
 
     constructor(private context: vscode.ExtensionContext) {
-        let savedTime = context.globalState.get<number>('heartbeat.codingTime');
-        if (savedTime === undefined) savedTime = context.globalState.get<number>('takeABreak.codingTime');
-
-        let savedDateStr = context.globalState.get<string>('heartbeat.codingDate');
-        if (savedDateStr === undefined) savedDateStr = context.globalState.get<string>('takeABreak.codingDate');
-
-        const todayStr = new Date().toDateString();
-
-        // Reset day if it's a new day
-        if (savedDateStr !== todayStr) {
-            this._codingTime = 0;
-            context.globalState.update('heartbeat.codingDate', todayStr);
-        } else if (savedTime) {
-            this._codingTime = savedTime;
-        }
+        this.loadTime();
 
         context.subscriptions.push(
             vscode.workspace.onDidChangeTextDocument(() => this.updateActivity()),
@@ -32,6 +18,24 @@ export class CodingTimeTracker {
         this._saveInterval = setInterval(() => {
             this.context.globalState.update('heartbeat.codingTime', this._codingTime);
         }, 60000);
+    }
+
+    public loadTime() {
+        let savedTime = this.context.globalState.get<number>('heartbeat.codingTime');
+        if (savedTime === undefined) savedTime = this.context.globalState.get<number>('takeABreak.codingTime');
+
+        let savedDateStr = this.context.globalState.get<string>('heartbeat.codingDate');
+        if (savedDateStr === undefined) savedDateStr = this.context.globalState.get<string>('takeABreak.codingDate');
+
+        const todayStr = new Date().toDateString();
+
+        // Reset day if it's a new day
+        if (savedDateStr !== todayStr) {
+            this._codingTime = 0;
+            this.context.globalState.update('heartbeat.codingDate', todayStr);
+        } else if (savedTime !== undefined) {
+            this._codingTime = savedTime;
+        }
     }
 
     private updateActivity() {

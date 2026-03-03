@@ -59,6 +59,27 @@
         document.getElementById('salahSettingsForm').classList.toggle('hidden');
     });
 
+    document.getElementById('showGeneralSettingsBtn')?.addEventListener('click', () => {
+        document.getElementById('generalSettingsForm').classList.toggle('hidden');
+    });
+
+    document.getElementById('browseCentralBtn')?.addEventListener('click', () => {
+        vscode.postMessage({ type: 'browseCentralFile' });
+    });
+
+    document.getElementById('saveGeneralSettingsBtn')?.addEventListener('click', () => {
+        const centralFile = document.getElementById('settingCentralFilePath').value;
+        vscode.postMessage({ type: 'saveSettings', value: { type: 'general', centralFile } });
+    });
+
+    document.getElementById('exportSettingsBtn')?.addEventListener('click', () => {
+        vscode.postMessage({ type: 'exportSettings' });
+    });
+
+    document.getElementById('importSettingsBtn')?.addEventListener('click', () => {
+        vscode.postMessage({ type: 'importSettings' });
+    });
+
     document.getElementById('browseHolidaysBtn')?.addEventListener('click', () => {
         vscode.postMessage({ type: 'browseHolidays' });
     });
@@ -209,6 +230,7 @@
                 if (card.classList.contains('widget-reminders')) return 'reminders';
                 if (card.classList.contains('widget-calendar')) return 'calendar';
                 if (card.classList.contains('widget-salah')) return 'salah';
+                if (card.classList.contains('widget-settings')) return 'settings';
                 return '';
             }).filter(Boolean);
             vscode.postMessage({ type: 'updateCardOrder', value: order });
@@ -284,7 +306,8 @@
             'tasks': grid.querySelector('.widget-tasks'),
             'reminders': grid.querySelector('.widget-reminders'),
             'calendar': grid.querySelector('.widget-calendar'),
-            'salah': grid.querySelector('.widget-salah')
+            'salah': grid.querySelector('.widget-salah'),
+            'settings': grid.querySelector('.widget-settings')
         };
 
         state.cardOrder.forEach(id => {
@@ -475,6 +498,11 @@
                 const cb = document.getElementById(`weekend-${i}`);
                 if (cb) cb.checked = state.weekends.includes(i);
             }
+        }
+
+        if (state.centralFile !== undefined) {
+            const input = document.getElementById('settingCentralFilePath');
+            if (input) input.value = state.centralFile;
         }
     }
 

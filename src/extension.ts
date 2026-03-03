@@ -25,6 +25,9 @@ export function activate(context: vscode.ExtensionContext) {
         holidays
     );
 
+    // Initial sync with central settings file
+    sidebarProvider.syncWithCentralFile();
+
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(
             "heartbeat.sidebarView",

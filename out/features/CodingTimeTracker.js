@@ -8,26 +8,29 @@ class CodingTimeTracker {
         this._codingTime = 0;
         this._lastActiveTime = Date.now();
         this._timerPaused = false;
-        let savedTime = context.globalState.get('heartbeat.codingTime');
-        if (savedTime === undefined)
-            savedTime = context.globalState.get('takeABreak.codingTime');
-        let savedDateStr = context.globalState.get('heartbeat.codingDate');
-        if (savedDateStr === undefined)
-            savedDateStr = context.globalState.get('takeABreak.codingDate');
-        const todayStr = new Date().toDateString();
-        // Reset day if it's a new day
-        if (savedDateStr !== todayStr) {
-            this._codingTime = 0;
-            context.globalState.update('heartbeat.codingDate', todayStr);
-        }
-        else if (savedTime) {
-            this._codingTime = savedTime;
-        }
+        this.loadTime();
         context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(() => this.updateActivity()), vscode.window.onDidChangeActiveTextEditor(() => this.updateActivity()));
         // Persist every minute
         this._saveInterval = setInterval(() => {
             this.context.globalState.update('heartbeat.codingTime', this._codingTime);
         }, 60000);
+    }
+    loadTime() {
+        let savedTime = this.context.globalState.get('heartbeat.codingTime');
+        if (savedTime === undefined)
+            savedTime = this.context.globalState.get('takeABreak.codingTime');
+        let savedDateStr = this.context.globalState.get('heartbeat.codingDate');
+        if (savedDateStr === undefined)
+            savedDateStr = this.context.globalState.get('takeABreak.codingDate');
+        const todayStr = new Date().toDateString();
+        // Reset day if it's a new day
+        if (savedDateStr !== todayStr) {
+            this._codingTime = 0;
+            this.context.globalState.update('heartbeat.codingDate', todayStr);
+        }
+        else if (savedTime !== undefined) {
+            this._codingTime = savedTime;
+        }
     }
     updateActivity() {
         if (this._timerPaused)

@@ -49,7 +49,7 @@ export class BreakReminders {
         return this._breaks;
     }
 
-    private loadBreaks() {
+    public loadBreaks() {
         let data = this.context.globalState.get<BreakAction[]>('heartbeat.breaks');
         if (!data) {
             data = this.context.globalState.get<BreakAction[]>('takeABreak.breaks');

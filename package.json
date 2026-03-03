@@ -81,6 +81,11 @@
                         "Isha": 0
                     },
                     "description": "Minute offsets for each prayer time."
+                },
+                "heartbeat.settings.centralFile": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Path to a central JSON file where settings and data are stored/synced."
                 }
             }
         }

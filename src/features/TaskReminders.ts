@@ -51,7 +51,7 @@ export class TaskReminders {
         return this._tasks;
     }
 
-    private loadTasks() {
+    public loadTasks() {
         let data = this.context.globalState.get<any[]>('heartbeat.tasks.v3');
         if (!data) {
             data = this.context.globalState.get<any[]>('takeABreak.tasks.v3');

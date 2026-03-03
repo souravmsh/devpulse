@@ -18,6 +18,8 @@ function activate(context) {
     const holidays = new CalendarHolidays_1.CalendarHolidays();
     // Register the Sidebar Panel
     const sidebarProvider = new SidebarProvider_1.SidebarProvider(context.extensionUri, context, taskReminders, breakReminders, codingTracker, salahTime, holidays);
+    // Initial sync with central settings file
+    sidebarProvider.syncWithCentralFile();
     context.subscriptions.push(vscode.window.registerWebviewViewProvider("heartbeat.sidebarView", sidebarProvider));
     context.subscriptions.push(vscode.commands.registerCommand('heartbeat.refresh', () => {
         sidebarProvider.refresh();
